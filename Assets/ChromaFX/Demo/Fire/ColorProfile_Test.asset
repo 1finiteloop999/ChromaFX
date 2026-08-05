@@ -1,0 +1,53 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 819d3b5df7ca3c84595abf08d6be50b3, type: 3}
+  m_Name: ColorProfile_Test
+  m_EditorClassIdentifier: 
+  highlightValueOffset: 0.25
+  subValueOffset: -0.12
+  accentValueOffset: -0.05
+  shadowValueOffset: -0.5
+  ambientValueOffset: -0.25
+  lightValueOffset: 0.2
+  contrastScaleMin: 0.6
+  contrastScaleMax: 1.4
+  highlightSatOffset: -0.331
+  accentSatOffset: 0.1
+  subSatMultiplier: 0.85
+  shadowSatMultiplier: 0.5
+  ambientSatMultiplier: 0.35
+  lightSatMultiplier: 0.4
+  warmAnchor: 0
+  warmStepRatio: 0.184
+  subSamplePosition: 0.32
+  accentBetaBoost: 1.2
+  shadowBetaScale: 0.7
+  variantHueSpread: 0.25
+  variantValueDrop: 0.35
+  rampHighlight: 0.15
+  rampMain: 0.25
+  rampSub: 0.25
+  rampAccent: 0.8
+  rampShadow: 0.3
+  rampAmbient: 0
+  birthTowardHighlight: 0.6
+  deathTowardShadow: 0.5
+  energyHighlight: 0.85
+  energyMain: 3
+  energySub: 0.9
+  energyAccent: 1
+  energyShadow: 0.85
+  energyAmbient: 0.9
+  startValueJitter: 0.15
+  birthEndTime: 0.15
+  deathStartTime: 0.7
+  deathAlphaCoupling: 0.5
