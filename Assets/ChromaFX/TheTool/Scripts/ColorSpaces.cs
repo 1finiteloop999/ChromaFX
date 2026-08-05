@@ -314,12 +314,12 @@ namespace ChromaFX
                 Color back = LabToRgb(RgbToLab(c), out _);
                 bool pass = Mathf.Abs(back.r - c.r) < 0.004f && Mathf.Abs(back.g - c.g) < 0.004f && Mathf.Abs(back.b - c.b) < 0.004f;
                 allPass &= pass;
-                if (!pass) Debug.LogWarning($"[ChromaFX] Lab往返失败: {c} → {back}");
+                if (!pass) Debug.LogWarning($"[ChromaFX] Lab round-trip failed: {c} -> {back}");
             }
 
             Debug.Log(allPass
-                ? "[ChromaFX] ColorSpaces自检全部通过 ✓"
-                : "[ChromaFX] ColorSpaces自检存在失败项 ✗");
+                ? "[ChromaFX] ColorSpaces self-test passed."
+                : "[ChromaFX] ColorSpaces self-test FAILED.");
             return allPass;
         }
     }

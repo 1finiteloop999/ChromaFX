@@ -10,9 +10,6 @@ namespace ChromaFX
     /// 数据模型：三轴绑定列表是配色映射的**唯一真相**——
     /// 名字映射表只用于生成初始绑定，生成后不再参与任何决策。
     /// 基线快照保证Apply幂等与可还原。
-    ///
-    /// 旧槽位字段在迁移完成并确认前保留（Applier将于5.6c切换到绑定），
-    /// 不在迁移成功前删除任何已序列化数据。
     /// </summary>
     [AddComponentMenu("ChromaFX/ChromaFX Target")]
     [DisallowMultipleComponent]
@@ -21,28 +18,18 @@ namespace ChromaFX
         public const int CurrentBaselineVersion = 1;
         public const int CurrentBindingVersion = 1;
 
-        [Header("粒子绑定（唯一真相）")]
+        [Header("Particle Bindings")]
         public List<ParticleBinding> bindings = new List<ParticleBinding>();
 
-        [Header("光源槽位")]
+        [Header("Light")]
         public Light lightSource;
 
         [SerializeField] int bindingVersion;
 
-        [Header("基线快照（Apply幂等与Restore的依据，勿手改）")]
+        [Header("Baseline Snapshot (do not edit by hand)")]
         [SerializeField] int baselineVersion;
         [SerializeField] List<SystemBaseline> baselines = new List<SystemBaseline>();
         [SerializeField] LightBaseline lightBaseline = new LightBaseline();
-
-        // ── 旧槽位数据：仅作为迁移来源保留，执行路径已全部改用bindings。
-        //    不主动删除已序列化数据，以便随时重新迁移或回溯。 ──
-        [HideInInspector] public List<ParticleSystem> highlight = new List<ParticleSystem>();
-        [HideInInspector] public List<ParticleSystem> main = new List<ParticleSystem>();
-        [HideInInspector] public List<ParticleSystem> sub = new List<ParticleSystem>();
-        [HideInInspector] public List<ParticleSystem> accent = new List<ParticleSystem>();
-        [HideInInspector] public List<ParticleSystem> shadow = new List<ParticleSystem>();
-        [HideInInspector] public List<ParticleSystem> ambient = new List<ParticleSystem>();
-        [HideInInspector] public List<ParticleSystem> excluded = new List<ParticleSystem>();
 
         public bool HasBaseline => baselineVersion > 0 && baselines.Count > 0;
         public int BaselineVersion => baselineVersion;
@@ -107,7 +94,7 @@ namespace ChromaFX
                 var tr = FindDeepChild(transform, t.name);
                 if (tr == null || !tr.TryGetComponent(out ParticleSystem ps))
                 {
-                    Debug.LogWarning($"[ChromaFX] 生成绑定：未找到子物体 '{t.name}'", this);
+                    Debug.LogWarning($"[ChromaFX] Build bindings: child '{t.name}' not found.", this);
                     continue;
                 }
                 bindings.Add(new ParticleBinding
@@ -128,54 +115,36 @@ namespace ChromaFX
 
             bindingVersion = CurrentBindingVersion;
             Validate(out string report);
-            Debug.Log($"[ChromaFX] 已生成 {bindings.Count} 条绑定。校验：\n{report}", this);
+            Debug.Log($"[ChromaFX] Created {bindings.Count} bindings. Check:\n{report}", this);
             MarkDirty();
         }
 
-        /// <summary>旧角色槽 → 三轴绑定的通用迁移（保留用户原有配置）</summary>
-        [ContextMenu("Migrate From Legacy Slots")]
-        public void MigrateFromLegacySlots()
+        /// <summary>
+        /// 为该物体下所有粒子系统创建绑定（通用，不依赖名字）。
+        /// 默认全部为 Primary / 0.45 / Cooling，之后由用户逐条调整。
+        /// </summary>
+        [ContextMenu("Build Bindings From Children (Any Effect)")]
+        public void BuildBindingsFromChildren()
         {
-            // 旧角色 → (族, 基准tone, 时间剖面)
-            var map = new (List<ParticleSystem> slot, ColorFamily family, float tone, TemporalProfile temporal)[]
-            {
-                (highlight, ColorFamily.Primary, 0.08f, TemporalProfile.Constant),
-                (main,      ColorFamily.Primary, 0.45f, TemporalProfile.Cooling),
-                (sub,       ColorFamily.Primary, 0.60f, TemporalProfile.Cooling),
-                (accent,    ColorFamily.Accent,  0.50f, TemporalProfile.Cooling),
-                (shadow,    ColorFamily.Neutral, 0.85f, TemporalProfile.Dimming),
-                (ambient,   ColorFamily.Primary, 0.30f, TemporalProfile.Constant),
-            };
-
 #if UNITY_EDITOR
-            UnityEditor.Undo.RecordObject(this, "ChromaFX Migrate Bindings");
+            UnityEditor.Undo.RecordObject(this, "ChromaFX Build Bindings");
 #endif
             bindings.Clear();
             var seen = new HashSet<ParticleSystem>();
 
-            foreach (var (slot, family, tone, temporal) in map)
-            {
-                if (slot == null) continue;
-                for (int i = 0; i < slot.Count; i++)
-                {
-                    var ps = slot[i];
-                    if (ps == null || !seen.Add(ps)) continue;
-                    bindings.Add(NewBinding(ps, family,
-                        // 同槽多粒子原先靠列表顺序取变体，迁移为显式tone阶梯
-                        Mathf.Clamp01(tone + i * 0.08f), temporal, ColorWritePolicy.FullPipeline));
-                }
-            }
-
-            foreach (var ps in excluded)
+            foreach (var ps in GetComponentsInChildren<ParticleSystem>(true))
             {
                 if (ps == null || !seen.Add(ps)) continue;
-                bindings.Add(NewBinding(ps, ColorFamily.Neutral, 0.5f,
-                    TemporalProfile.Constant, ColorWritePolicy.Excluded));
+                bindings.Add(NewBinding(ps, ColorFamily.Primary, FamilyCurve.TBase,
+                    TemporalProfile.Cooling, ColorWritePolicy.FullPipeline));
             }
+
+            if (lightSource == null)
+                lightSource = GetComponentInChildren<Light>(true);
 
             bindingVersion = CurrentBindingVersion;
             Validate(out string report);
-            Debug.Log($"[ChromaFX] 已从旧槽位迁移 {bindings.Count} 条绑定（旧数据保留未删除）。校验：\n{report}", this);
+            Debug.Log($"[ChromaFX] Created {bindings.Count} bindings from children. Check:\n{report}", this);
             MarkDirty();
         }
 
@@ -207,7 +176,8 @@ namespace ChromaFX
 
             if (!HasBindings)
             {
-                report = "错误：尚未生成粒子绑定——请执行 Build Default Bindings 或 Migrate From Legacy Slots";
+                report = "Error: no particle bindings yet — run Build Default Bindings " +
+                         "or Build Bindings From Children.";
                 return false;
             }
 
@@ -218,37 +188,37 @@ namespace ChromaFX
             {
                 if (b == null || b.system == null)
                 {
-                    sb.AppendLine("错误：存在空绑定或空粒子系统引用");
+                    sb.AppendLine("Error: a binding is empty or has no particle system.");
                     ok = false;
                     continue;
                 }
 
                 if (!seenSystems.Add(b.system))
                 {
-                    sb.AppendLine($"错误：{b.system.name} 存在多条绑定");
+                    sb.AppendLine($"Error: {b.system.name} has more than one binding.");
                     ok = false;
                 }
 
                 if (b.tonePosition < 0f || b.tonePosition > 1f)
                 {
-                    sb.AppendLine($"错误：{b.system.name} 的tonePosition超出[0,1]");
+                    sb.AppendLine($"Error: {b.system.name} tone position is outside 0-1.");
                     ok = false;
                 }
 
                 // 哨兵校验：只接受-1或非负
                 if (b.temporalStrength < 0f && !Mathf.Approximately(b.temporalStrength, ParticleBinding.Inherit))
                 {
-                    sb.AppendLine($"错误：{b.system.name} 的temporalStrength非法（只接受-1或≥0）");
+                    sb.AppendLine($"Error: {b.system.name} temporal strength must be -1 (inherit) or 0 and up.");
                     ok = false;
                 }
                 if (b.energyScale < 0f && !Mathf.Approximately(b.energyScale, ParticleBinding.Inherit))
                 {
-                    sb.AppendLine($"错误：{b.system.name} 的energyScale非法（只接受-1或≥0）");
+                    sb.AppendLine($"Error: {b.system.name} energy scale must be -1 (inherit) or 0 and up.");
                     ok = false;
                 }
                 if (b.visualWeight < 0f && !Mathf.Approximately(b.visualWeight, ParticleBinding.Inherit))
                 {
-                    sb.AppendLine($"错误：{b.system.name} 的visualWeight非法（只接受-1或≥0）");
+                    sb.AppendLine($"Error: {b.system.name} visual weight must be -1 (inherit) or 0 and up.");
                     ok = false;
                 }
 
@@ -257,7 +227,7 @@ namespace ChromaFX
                 Material mat = renderer != null ? renderer.sharedMaterial : null;
                 if (mat == null)
                 {
-                    sb.AppendLine($"警告：{b.system.name} 无渲染器或材质");
+                    sb.AppendLine($"Warning: {b.system.name} has no renderer or material.");
                 }
                 else if (matOwner.TryGetValue(mat, out var other))
                 {
@@ -265,14 +235,15 @@ namespace ChromaFX
                                      && Mathf.Approximately(other.tonePosition, b.tonePosition);
                     if (!sameColor)
                     {
-                        sb.AppendLine($"错误：{other.system.name} 与 {b.system.name} 共享材质 {mat.name}，" +
-                                      "但取色不同——后写入者会覆盖前者，请复制独立材质");
+                        sb.AppendLine($"Error: {other.system.name} and {b.system.name} share material " +
+                                      $"{mat.name} but ask for different colors. One will overwrite the " +
+                                      "other — give one of them its own material copy.");
                         ok = false;
                     }
                     else if (!Mathf.Approximately(other.energyScale, b.energyScale))
                     {
-                        sb.AppendLine($"警告：{other.system.name} 与 {b.system.name} 共享材质 {mat.name}，" +
-                                      "但energyScale不一致，实际只会生效其中之一");
+                        sb.AppendLine($"Warning: {other.system.name} and {b.system.name} share material " +
+                                      $"{mat.name} but have different energy scales. Only one will apply.");
                     }
                 }
                 else
@@ -282,14 +253,14 @@ namespace ChromaFX
 
                 if (!b.UsesTemporal && b.temporalProfile != TemporalProfile.Constant)
                 {
-                    sb.AppendLine($"提示：{b.system.name} 为 {b.writePolicy}，时间剖面被忽略");
+                    sb.AppendLine($"Note: {b.system.name} is {b.writePolicy}, so its temporal profile is ignored.");
                 }
             }
 
             if (lightSource == null)
-                sb.AppendLine("警告：光源槽为空（Light将跳过）");
+                sb.AppendLine("Warning: no light assigned — the Light color will be skipped.");
 
-            report = sb.Length == 0 ? "绑定配置有效，无警告" : sb.ToString().TrimEnd();
+            report = sb.Length == 0 ? "Bindings OK" : sb.ToString().TrimEnd();
             return ok;
         }
 
@@ -330,9 +301,9 @@ namespace ChromaFX
             baselineVersion = CurrentBaselineVersion;
             MarkDirty();
 
-            sb.AppendLine($"已捕获 {baselines.Count} 个粒子系统" +
-                          (lightBaseline.captured ? " + 光源" : "（无光源）") +
-                          $"，基线版本 v{baselineVersion}");
+            sb.AppendLine($"Captured {baselines.Count} particle systems" +
+                          (lightBaseline.captured ? " + light" : " (no light)") +
+                          $", baseline v{baselineVersion}.");
             report = sb.ToString().TrimEnd();
             return ok;
         }
@@ -359,11 +330,11 @@ namespace ChromaFX
                     ? b.material.GetColor(ParticleColorApplier.ColorProperty)
                     : Color.white;
                 if (!b.material.HasProperty(ParticleColorApplier.ColorProperty))
-                    sb.AppendLine($"警告：{ps.name} 的材质无 {ParticleColorApplier.ColorProperty} 属性");
+                    sb.AppendLine($"Warning: material on {ps.name} has no {ParticleColorApplier.ColorProperty} property.");
             }
             else
             {
-                sb.AppendLine($"警告：{ps.name} 无渲染器或材质");
+                sb.AppendLine($"Warning: {ps.name} has no renderer or material.");
             }
 
             b.startColor = MinMaxGradientData.Capture(ps.main.startColor);
@@ -383,7 +354,7 @@ namespace ChromaFX
         {
             if (!HasBaseline)
             {
-                report = "无基线可还原";
+                report = "No baseline to restore.";
                 return false;
             }
 
@@ -395,7 +366,7 @@ namespace ChromaFX
             {
                 if (b.system == null)
                 {
-                    sb.AppendLine("警告：基线中存在失效的系统引用（对象被删除？）");
+                    sb.AppendLine("Warning: a baseline entry points to a missing particle system (deleted?).");
                     continue;
                 }
 
@@ -437,7 +408,7 @@ namespace ChromaFX
 #endif
             }
 
-            sb.AppendLine($"已还原 {count} 个粒子系统" + (lightBaseline.captured ? " + 光源" : ""));
+            sb.AppendLine($"Restored {count} particle systems" + (lightBaseline.captured ? " + light" : "") + ".");
             report = sb.ToString().TrimEnd();
             return true;
         }

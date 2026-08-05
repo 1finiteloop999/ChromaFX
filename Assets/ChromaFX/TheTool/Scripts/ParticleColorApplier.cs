@@ -48,28 +48,28 @@ namespace ChromaFX
         {
             if (target == null || scheme == null || scheme.palette == null)
             {
-                Debug.LogError("[ChromaFX] Apply失败：target或scheme为空");
+                Debug.LogError("[ChromaFX] Apply failed: target or scheme is missing.");
                 return 0;
             }
             if (profile == null) profile = EffectColorProfile.Default;
 
             if (!target.HasBindings)
             {
-                Debug.LogError("[ChromaFX] Apply中止：尚未生成粒子绑定——" +
-                               "请在ChromaFXTarget上执行 Build Default Bindings 或 Migrate From Legacy Slots");
+                Debug.LogError("[ChromaFX] Apply stopped: no particle bindings. " +
+                               "Use Build Bindings on the ChromaFXTarget first.");
                 return 0;
             }
 
             if (!target.Validate(out string report))
             {
-                Debug.LogError($"[ChromaFX] Apply中止，绑定配置错误：\n{report}");
+                Debug.LogError($"[ChromaFX] Apply stopped, binding setup has errors:\n{report}");
                 return 0;
             }
 
             if (!target.HasBaseline)
             {
                 target.CaptureBaseline(out string capReport);
-                Debug.Log($"[ChromaFX] 自动捕获基线：\n{capReport}");
+                Debug.Log($"[ChromaFX] Baseline captured automatically:\n{capReport}");
             }
 
             int written = 0;
@@ -82,8 +82,8 @@ namespace ChromaFX
                 var baseline = target.GetBaseline(binding.system);
                 if (baseline == null)
                 {
-                    Debug.LogWarning($"[ChromaFX] {binding.system.name} 无基线（新增系统？）跳过——" +
-                                     "请先 Restore Original 再 Recapture Baseline", binding.system);
+                    Debug.LogWarning($"[ChromaFX] {binding.system.name} has no baseline (newly added?). Skipped — " +
+                                     "use Restore Original, then Recapture Baseline.", binding.system);
                     continue;
                 }
 
@@ -102,7 +102,7 @@ namespace ChromaFX
                 written++;
             }
 
-            Debug.Log($"[ChromaFX] 已应用方案「{scheme.name}」，处理{written}个目标");
+            Debug.Log($"[ChromaFX] Applied \"{scheme.name}\" to {written} targets.");
             return written;
         }
 

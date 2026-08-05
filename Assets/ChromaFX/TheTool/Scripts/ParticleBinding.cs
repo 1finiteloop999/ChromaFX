@@ -50,20 +50,24 @@ namespace ChromaFX
     {
         public ParticleSystem system;
 
-        [Header("语义三轴")]
+        [Header("What color to use")]
+        [Tooltip("Which color curve this particle takes its color from.")]
         public ColorFamily colorFamily = ColorFamily.Primary;
+        [Tooltip("Where on the curve: 0 = hot and bright, 1 = dark.")]
         [Range(0f, 1f)] public float tonePosition = FamilyCurve.TBase;
+        [Tooltip("How the color changes over the particle's life.")]
         public TemporalProfile temporalProfile = TemporalProfile.Cooling;
 
-        [Header("执行参数（-1 = 继承默认）")]
-        [Tooltip("-1 继承时间剖面默认强度")]
+        [Header("How to apply it  (-1 = inherit from profile)")]
+        [Tooltip("How strong the lifetime color change is. -1 inherits the profile default.")]
         public float temporalStrength = Inherit;
-        [Tooltip("-1 继承色族默认能量倍率")]
+        [Tooltip("How bright this layer glows. -1 inherits the profile default.")]
         public float energyScale = Inherit;
+        [Tooltip("Which channels get written.")]
         public ColorWritePolicy writePolicy = ColorWritePolicy.FullPipeline;
 
-        [Header("仅供EffectFitness（不影响外观）")]
-        [Tooltip("-1 由发射参数自动估计；非渲染像素测量")]
+        [Header("Metrics only (does not change the look)")]
+        [Tooltip("-1 estimates it from emission settings. Not a pixel measurement.")]
         public float visualWeight = Inherit;
 
         /// <summary>继承哨兵。新增字段默认为0会导致energyScale=0（粒子变黑）的静默失败，

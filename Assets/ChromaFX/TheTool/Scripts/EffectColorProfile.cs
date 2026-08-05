@@ -14,78 +14,91 @@ namespace ChromaFX
     ///
     /// 同样不入Profile的还有：Matsuda扇区宽度(93.6°/18°)、Fitness角色权重
     /// ——它们是文献常数，改动等于改变理论依据。
+    ///
+    /// Inspector 由 EffectColorProfileEditor 分组显示；此处的 Header/Tooltip
+    /// 仅在关闭自定义 Inspector 时可见。
     /// </summary>
     [CreateAssetMenu(menuName = "ChromaFX/Effect Color Profile", fileName = "NewColorProfile")]
     public class EffectColorProfile : ScriptableObject
     {
-        [Header("── 色调曲线·热端（相对基准的LCh偏移） ──")]
-        [Tooltip("热端L*增量（受Value Contrast缩放）")]
+        [Header("Tone Curve - Hot End")]
+        [Tooltip("How much brighter the hot end is. Raise it if flame cores look dull.")]
         [Range(0f, 60f)] public float hotLightnessDelta = 38f;
-        [Tooltip("热端彩度倍率，<1趋向白热")]
+        [Tooltip("How much color the hot end keeps. Lower = closer to white hot.")]
         [Range(0f, 1.5f)] public float hotChromaScale = 0.55f;
-        [Tooltip("热端向暖锚点漂移的最大角度（LCh色相度）")]
+        [Tooltip("How far the hot end shifts toward the warm anchor.")]
         [Range(0f, 45f)] public float hotHueDrift = 18f;
-        [Tooltip("暖锚点（LCh色相角，≈85°为黄橙）。注意LCh色相角与HSV色相不同")]
+        [Tooltip("Warm anchor hue in LCh degrees (about 85 = yellow-orange). Not the same as HSV hue.")]
         [Range(0f, 360f)] public float lchWarmAnchor = 85f;
 
-        [Header("── 色调曲线·暗端 ──")]
-        [Tooltip("暗端L*增量（负值，受Value Contrast缩放）")]
+        [Header("Tone Curve - Dark End")]
+        [Tooltip("How much darker the dark end is (negative).")]
         [Range(-70f, 0f)] public float darkLightnessDelta = -42f;
+        [Tooltip("How much color the dark end keeps.")]
         [Range(0f, 1.5f)] public float darkChromaScale = 0.55f;
-        [Tooltip("暗端向中性族色相收敛的最大角度")]
+        [Tooltip("How far the dark end bends toward the neutral hue.")]
         [Range(0f, 45f)] public float darkHueDrift = 12f;
 
-        [Header("── 明度对比：缩放热端↔暗端的L*跨度 ──")]
+        [Header("Value Contrast Mapping")]
+        [Tooltip("Multiplier when the Value Contrast slider is at 0.")]
         [Range(0.1f, 1f)] public float contrastScaleMin = 0.6f;
+        [Tooltip("Multiplier when the Value Contrast slider is at 1.")]
         [Range(1f, 2.5f)] public float contrastScaleMax = 1.4f;
 
-        [Header("── 分族彩度规则（防插值穿灰／防彩色烟） ──")]
+        [Header("Color Purity Rules")]
+        [Tooltip("Lowest color strength for the primary family. Stops gradients from passing through gray.")]
         [Range(0f, 30f)] public float primaryChromaFloor = 10f;
-        [Range(0f, 30f)] public float accentChromaFloor  = 12f;
-        [Tooltip("中性族彩度下限应接近0，否则烟雾会变成脏彩色")]
+        [Tooltip("Lowest color strength for the accent family.")]
+        [Range(0f, 30f)] public float accentChromaFloor = 12f;
+        [Tooltip("Lowest color strength for the neutral family. Keep near 0 or smoke turns colored.")]
         [Range(0f, 10f)] public float neutralChromaFloor = 0f;
-        [Tooltip("中性族基准彩度 = 主色彩度 × 此倍率")]
+        [Tooltip("Neutral base color strength = primary color strength x this.")]
         [Range(0f, 1f)] public float neutralChromaScale = 0.25f;
-        [Tooltip("中性族基准彩度上限（绝对值）")]
+        [Tooltip("Hard cap on neutral color strength. Lower this if smoke looks dirty.")]
         [Range(0f, 20f)] public float neutralChromaCap = 6f;
-        [Tooltip("中性族基准相对主色基准的L*偏移")]
+        [Tooltip("How much darker the neutral base is than the primary base.")]
         [Range(-30f, 10f)] public float neutralLightnessDelta = -8f;
 
-        [Header("── 跳色 ──")]
-        [Tooltip("Accent的β加成倍率（Tan：跳色可用较高β贴近对比轴）")]
+        [Header("Accent")]
+        [Tooltip("Extra pull toward the harmony template for accent colors.")]
         [Range(1f, 2f)] public float accentBetaBoost = 1.2f;
-        [Tooltip("跳色向主色混合以柔化色差。这是色差强度参数，不是面积参数。" +
-                 "自然篝火默认无Accent绑定，此值不生效")]
+        [Tooltip("Blend the accent toward the primary to soften it. " +
+                 "This changes color difference, not screen area.")]
         [Range(0f, 1f)] public float accentBlendToPrimary = 0f;
-        [Tooltip("跳色允许占据的视觉比例上限，仅供EffectFitness告警使用（Itten面积/延伸对比）")]
+        [Tooltip("How much of the effect accent colors may take up. " +
+                 "Used only for panel warnings — it does not change the picture.")]
         [Range(0f, 1f)] public float accentBudget = 0.25f;
 
-        [Header("── 生命周期色变方向 ──")]
-        [Tooltip("出生色沿自身族曲线向热端移动的比例")]
+        [Header("Lifetime Travel")]
+        [Tooltip("How far a new particle starts toward the hot end of its curve.")]
         [FormerlySerializedAs("birthTowardHighlight")]
         [Range(0f, 1f)] public float birthTravelTowardHot = 0.6f;
-        [Tooltip("熄灭色沿自身族曲线向暗端移动的比例")]
+        [Tooltip("How far a dying particle travels toward the dark end. " +
+                 "Raise it if embers do not burn out.")]
         [FormerlySerializedAs("deathTowardShadow")]
         [Range(0f, 1f)] public float deathTravelTowardDark = 0.5f;
 
-        [Header("── 每粒子明度抖动 ──")]
-        [Tooltip("StartColor为单色时扩展为[1-jitter,1]的随机灰度区间")]
+        [Header("Per-Particle Jitter")]
+        [Tooltip("Random brightness spread between particles. Raise it for a grainier look.")]
         [Range(0f, 0.6f)] public float startValueJitter = 0.15f;
 
-        [Header("── 生命周期时序 ──")]
+        [Header("Lifetime Timing")]
+        [Tooltip("When the birth phase ends (share of the particle lifetime).")]
         [Range(0f, 0.5f)] public float birthEndTime = 0.15f;
+        [Tooltip("When the fade-out phase starts.")]
         [Range(0.5f, 1f)] public float deathStartTime = 0.70f;
-        [Tooltip("熄灭段颜色变暗时Alpha同步衰减的耦合度（防黑色纸片）")]
+        [Tooltip("How much opacity drops as the color gets darker. Stops dark particles " +
+                 "looking like black paper.")]
         [Range(0f, 1f)] public float deathAlphaCoupling = 0.5f;
 
-        [Header("── 时间剖面默认强度（Binding以-1继承） ──")]
+        [Header("Inherited Defaults - Temporal Strength")]
         [Range(0f, 1f)] public float defaultCoolingStrength = 0.8f;
         [Range(0f, 1f)] public float defaultDimmingStrength = 0.5f;
         [Range(0f, 1f)] public float defaultSmokeFadeStrength = 0.35f;
 
-        [Header("── 色族默认能量倍率（Binding以-1继承，粗略默认） ──")]
+        [Header("Inherited Defaults - Family Energy")]
         [Range(0f, 4f)] public float defaultPrimaryEnergy = 1f;
-        [Range(0f, 4f)] public float defaultAccentEnergy  = 1f;
+        [Range(0f, 4f)] public float defaultAccentEnergy = 1f;
         [Range(0f, 4f)] public float defaultNeutralEnergy = 1f;
 
         // ════════════════════════════════════════════

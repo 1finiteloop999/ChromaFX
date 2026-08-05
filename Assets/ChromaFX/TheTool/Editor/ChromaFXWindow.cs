@@ -119,10 +119,12 @@ namespace ChromaFX.EditorTools
                     "No particle bindings yet. Generate them before applying.", MessageType.Warning);
                 using (new EditorGUILayout.HorizontalScope())
                 {
-                    if (GUILayout.Button("Build Default Bindings (Demo Fire)"))
+                    if (GUILayout.Button(new GUIContent("Build From Children",
+                            "Makes one binding per particle system. Works with any effect.")))
+                        target.BuildBindingsFromChildren();
+                    if (GUILayout.Button(new GUIContent("Demo Fire Preset",
+                            "Uses the campfire layer names. Only for the demo effect.")))
                         target.BuildDefaultBindings();
-                    if (GUILayout.Button("Migrate From Legacy Slots"))
-                        target.MigrateFromLegacySlots();
                 }
             }
 
@@ -185,7 +187,7 @@ namespace ChromaFX.EditorTools
                 GUILayout.Label("Scheme", EditorStyles.boldLabel);
                 GUILayout.FlexibleSpace();
                 showAdvanced = GUILayout.Toggle(showAdvanced,
-                    new GUIContent("Advanced", "显示不影响画面的实验与评价控件"),
+                    new GUIContent("Advanced", "Show experiment and metric controls that do not change the look"),
                     EditorStyles.miniButton, GUILayout.Width(74));
             }
 
@@ -433,7 +435,7 @@ namespace ChromaFX.EditorTools
         {
             if (target == null || !target.HasBindings) return;
 
-            if (!string.IsNullOrEmpty(configReport) && configReport != "绑定配置有效，无警告")
+            if (!string.IsNullOrEmpty(configReport) && configReport != "Bindings OK")
                 EditorGUILayout.HelpBox(configReport, configValid ? MessageType.Warning : MessageType.Error);
 
             var hints = new List<string>();

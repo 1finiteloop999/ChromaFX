@@ -44,8 +44,8 @@ namespace ChromaFX.EditorTools
             ok &= SchemeFitness.RunSelfTest();
             ok &= ChromaFXFitness.RunSelfTest();
             UnityEngine.Debug.Log(ok
-                ? "[ChromaFX] ══ 全部自检通过 ══"
-                : "[ChromaFX] ══ 存在失败项，见上方日志 ══");
+                ? "[ChromaFX] == All self-tests passed =="
+                : "[ChromaFX] == Some self-tests FAILED, see log above ==");
         }
 
         // （Step 4的临时Test Apply菜单已由ChromaFXWindow替代并删除）

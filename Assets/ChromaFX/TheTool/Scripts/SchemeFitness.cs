@@ -39,7 +39,7 @@ namespace ChromaFX
             sb.Append($"[{schemeName}] TemplateFit={templateFit:F1} ");
             sb.Append($"ΔE00: M-S={dE_MainSub:F1} M-A={dE_MainAccent:F1} M-Sh={dE_MainShadow:F1} ");
             sb.Append($"H-M={dE_HighlightMain:F1} M-Am={dE_MainAmbient:F1} M-L={dE_MainLight:F1} ");
-            sb.Append($"L*违反={valueOrderViolations} 裁切={gamutClipCount}");
+            sb.Append($"L* order breaks={valueOrderViolations} gamut clips={gamutClipCount}");
             return sb.ToString();
         }
     }
@@ -131,21 +131,21 @@ namespace ChromaFX
             }
 
             // 1. 类比方案全员在主轴扇区内 → TemplateFit应低于互补方案
-            Check("类比TemplateFit更低", reports[0].templateFit <= reports[1].templateFit);
+            Check("analogous has lower template fit", reports[0].templateFit <= reports[1].templateFit);
             // 2. 跳色对比 > 同色系连续（互补方案）
-            Check("M-A > M-S (互补)", reports[1].dE_MainAccent > reports[1].dE_MainSub);
+            Check("Main-Accent > Main-Sub (complementary)", reports[1].dE_MainAccent > reports[1].dE_MainSub);
             // 3. 所有关键对ΔE00为正且有限
             bool positive = true;
             foreach (var r in reports)
                 positive &= r.dE_MainSub > 0f && r.dE_MainAccent > 0f && r.dE_MainShadow > 0f
                          && !float.IsNaN(r.templateFit) && !float.IsInfinity(r.templateFit);
-            Check("指标为正且有限", positive);
+            Check("metrics positive and finite", positive);
             // 4. 暗部与主体保持结构差（ΔE00 > 10：明显可区分）
-            Check("M-Sh结构差", reports[1].dE_MainShadow > 10f);
+            Check("Main-Shadow structural gap", reports[1].dE_MainShadow > 10f);
 
             Debug.Log(allPass
-                ? "[ChromaFX] SchemeFitness自检全部通过 ✓"
-                : "[ChromaFX] SchemeFitness自检存在失败项 ✗");
+                ? "[ChromaFX] SchemeFitness self-test passed."
+                : "[ChromaFX] SchemeFitness self-test FAILED.");
             return allPass;
         }
     }

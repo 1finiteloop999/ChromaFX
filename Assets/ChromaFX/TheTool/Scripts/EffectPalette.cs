@@ -151,8 +151,8 @@ namespace ChromaFX
             {
                 if (!c.IsMonotonic)
                 {
-                    sb.AppendLine($"警告：{name}曲线L*非单调（hot={c.hot.x:F1} base={c.baseLch.x:F1} dark={c.dark.x:F1}）" +
-                                  "——种子色过亮或过暗，色调范围被端点截断");
+                    sb.AppendLine($"Warning: {name} curve L* is not monotonic (hot={c.hot.x:F1} base={c.baseLch.x:F1} dark={c.dark.x:F1}) " +
+                                  "— the seed color is too bright or too dark, so the tone range is clipped.");
                     ok = false;
                 }
             }
@@ -161,7 +161,7 @@ namespace ChromaFX
             CheckCurve("Accent", accent);
             CheckCurve("Neutral", neutral);
 
-            report = sb.Length == 0 ? "三族曲线校验通过" : sb.ToString().TrimEnd();
+            report = sb.Length == 0 ? "All three curves OK" : sb.ToString().TrimEnd();
             return ok;
         }
 

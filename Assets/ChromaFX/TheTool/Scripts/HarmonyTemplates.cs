@@ -189,38 +189,38 @@ namespace ChromaFX
             float rot = 30f; // 主色H=30°
 
             // 1. 主轴扇区内距离为0
-            Check("主轴内距离=0", SectorDistance(30f, rot, comp[0]) < 1e-4f);
+            Check("inside main sector = 0", SectorDistance(30f, rot, comp[0]) < 1e-4f);
             // 2. 对比轴心(30+180=210)距离为0
-            Check("对比轴心距离=0", SectorDistance(210f, rot, comp[1]) < 1e-4f);
+            Check("on contrast axis = 0", SectorDistance(210f, rot, comp[1]) < 1e-4f);
             // 3. 扇区外距离 = 圆弧距离-半宽：H=120 距主轴(30±46.8) → 90-46.8=43.2
-            Check("扇区外距离", Mathf.Abs(SectorDistance(120f, rot, comp[0]) - 43.2f) < 0.01f);
+            Check("outside sector distance", Mathf.Abs(SectorDistance(120f, rot, comp[0]) - 43.2f) < 0.01f);
             // 4. β=1投影吸附轴心：H=120最近对比轴(210)? 距主轴43.2 vs 距对比轴 90-9=81 → 吸附主轴30
             float proj1 = ProjectHue(120f, rot, comp, 1f);
-            Check("β=1吸附最近轴", Mathf.Abs(ColorSpaces.HueDistance(proj1, 30f)) < 1e-3f);
+            Check("beta=1 snaps to nearest axis", Mathf.Abs(ColorSpaces.HueDistance(proj1, 30f)) < 1e-3f);
             // 5. β=0不动
-            Check("β=0保持原色相", Mathf.Abs(ProjectHue(120f, rot, comp, 0f) - 120f) < 1e-4f);
+            Check("beta=0 keeps original hue", Mathf.Abs(ProjectHue(120f, rot, comp, 0f) - 120f) < 1e-4f);
             // 6. β=0.5移动一半
             float proj05 = ProjectHue(120f, rot, comp, 0.5f);
-            Check("β=0.5走一半", Mathf.Abs(ColorSpaces.HueDistance(proj05, 75f)) < 0.01f);
+            Check("beta=0.5 moves halfway", Mathf.Abs(ColorSpaces.HueDistance(proj05, 75f)) < 0.01f);
             // 7. 强制投向对比扇区
             float projT = ProjectHue(120f, rot, comp, 1f, targetSector: 1);
-            Check("强制投对比轴", Mathf.Abs(ColorSpaces.HueDistance(projT, 210f)) < 1e-3f);
+            Check("forced projection to contrast axis", Mathf.Abs(ColorSpaces.HueDistance(projT, 210f)) < 1e-3f);
             // 8. 投影后模板距离下降
             float[] hues = { 120f };
             float[] sats = { 1f };
             float before = TemplateDistance(hues, sats, null, rot, comp);
             float after = TemplateDistance(new[] { proj1 }, sats, null, rot, comp);
-            Check("投影降低模板距离", after < before);
+            Check("projection lowers template distance", after < before);
             // 9. 扇区采样边界：t=0/0.5/1
             var ana = GetSectors(HarmonyMode.Analogous);
-            Check("采样t=0.5为轴心", Mathf.Abs(SampleInSector(rot, ana[0], 0.5f) - 30f) < 1e-3f);
-            Check("采样t=1为右边界", Mathf.Abs(SampleInSector(rot, ana[0], 1f) - ColorSpaces.WrapHue(30f + 46.8f)) < 1e-3f);
+            Check("sample t=0.5 is axis center", Mathf.Abs(SampleInSector(rot, ana[0], 0.5f) - 30f) < 1e-3f);
+            Check("sample t=1 is right edge", Mathf.Abs(SampleInSector(rot, ana[0], 1f) - ColorSpaces.WrapHue(30f + 46.8f)) < 1e-3f);
             // 10. 色相环绕：rotation=350，扇区采样跨0°
-            Check("环绕采样", SampleInSector(350f, ana[0], 1f) < 60f);
+            Check("hue wrap-around sampling", SampleInSector(350f, ana[0], 1f) < 60f);
 
             Debug.Log(allPass
-                ? "[ChromaFX] HarmonyTemplates自检全部通过 ✓"
-                : "[ChromaFX] HarmonyTemplates自检存在失败项 ✗");
+                ? "[ChromaFX] HarmonyTemplates self-test passed."
+                : "[ChromaFX] HarmonyTemplates self-test FAILED.");
             return allPass;
         }
     }
